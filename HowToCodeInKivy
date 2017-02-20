@@ -1,0 +1,4 @@
+If you want develop with Kivy:
+1. Download PIP if you don't have it. It's basically an easy way to install Python packages. 
+2. Download Kivy from here https://kivy.org/#download
+3. Take a look at this https://www.youtube.com/playlist?list=PLdNh1e1kmiPP4YApJm8ENK2yMlwF1_edq if you want to which teaches you how to code basic stuff in Kivy. Ignore video 2 though. I'll do the compilation stuff and the making of the actual APK. 
