@@ -1,0 +1,34 @@
+Sql statments required for real world project
+
+first connect to database:
+
+import sqlite3 as sql
+con = sql.connect('skiSlopeDatabase.db') #connecting to sql
+cur = con.cursor()
+N.B cur stands for cursor and con stands for connection
+
+and remember to commit and close the connection once all sql is execute (only close at end and commit after each insert)
+
+con.commit
+con.close()
+
+inserting user details into database:
+
+first use get commands to get infomation form gui entry boxes and put them into a list in order
+customerDetails = [userID,username,password,email,phone_number]
+
+cur.execute('''BookingList (userID,username,password,email,phone_number) VALUES (?,?,?,?,?);''', customerDetails)
+
+what this does is it inserts the data into the database a ? is a placholder and is needed when inerting values that are vairbles created in the code
+
+Now selecting data to be put in the shopping list, first it is necessary to get the name of the recipe when the user selects the recipe
+to add to the shopping list:
+
+firstly select the recipe id based on recipe name
+
+cur.execute('''SELECT recipeID FROM recipes WHERE recipeName = ?;''',recipeName) #select recipe id based on name of recipe
+recipeID = int(fetchone()[0]) #asign recipe id 
+
+then we have to select the ingredients based on the recipe id:
+
+cur.execute('''SELECT * FROM  ingredients WHERE recipeID = ? ;''',recipeID) #this selects all the ingredients in the database with that recipe id 
