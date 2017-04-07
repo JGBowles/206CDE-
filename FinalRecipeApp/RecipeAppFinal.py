@@ -1,6 +1,6 @@
 import sqlite3 as sql
-import uuid   
-import hashlib
+import uuid   # uuid is used to generate a random number to avoid dic attack
+import hashlib # calling the hashing 
 
 from kivy.uix.checkbox import CheckBox 
 from kivy.app import App
@@ -23,104 +23,115 @@ class MainScreen(Screen):
 
 
 class CaloriesScreen(Screen):
-    totalCalories = 0
+    totalCalories = 0 # create a class attribute totalCalories
     
     def formatScreen(self, theRecipeID, name):
-        con = sql.connect('realWorldProject.db')
+        """ Function for populating the scrollview with items and reformatting widgets """
+        con = sql.connect('realWorldProject.db') # connect to the database
         cur = con.cursor()
-        cur.execute('''SELECT calories FROM recipes WHERE recipeID =?; ''', (int(theRecipeID),))
+        cur.execute('''SELECT calories FROM recipes WHERE recipeID =?; ''', (int(theRecipeID),)) # Select the calories from the record with the recipe ID passed as a parameter
         calories = int(cur.fetchone()[0])
-        self.updateTotalCal(calories)
-        self.ids.grid.add_widget(FoodItem(food=name, calories=str(calories)))
+        self.updateTotalCal(calories) # call the updateTotalCal method
+        self.ids.grid.add_widget(FoodItem(food=name, calories=str(calories))) # Add a new FoodItem widget to the scrollview
 
     def updateTotalCal(self, cal):
-        CaloriesScreen.totalCalories += cal
+        """ Updates the totalCalories class attribute and other widgets on the screen """
+        CaloriesScreen.totalCalories += cal # Add the calories of the selected recipe to the totalCalories attribute
         self.ids.calories.text = str(CaloriesScreen.totalCalories)
         if CaloriesScreen.totalCalories < 1000:
-            self.ids.warning.text = "You are under calories."
+            self.ids.warning.text = "You are under calories." # if the total calories is under 1000 alert the user
         elif CaloriesScreen.totalCalories > 2500:
-            self.ids.warning.text = "You are over calories."
+            self.ids.warning.text = "You are over calories." # if the total calories is above 2500 alert the user
         else:
-            self.ids.warning.text = ""
+            self.ids.warning.text = "" # else there is no warning to display to the user
 
     def clearList(self):
-        self.ids.grid.clear_widgets()
-        CaloriesScreen.totalCalories = 0
+        """ Clears the scrollview of all widgets """
+        self.ids.grid.clear_widgets() # clear the grid of widgets 
+        CaloriesScreen.totalCalories = 0 # reset the totalCalories attribute to 0 
         self.ids.calories.text = str(CaloriesScreen.totalCalories)
         self.ids.warning.text = ""
       
 class FoodItem(BoxLayout):
+    # Inherit the BoxLayout class and create a unique widget called FoodItem with two labels
     food = StringProperty('')
     calories = StringProperty('')
 
 class LoginScreen(Screen):
 
     def loginUser(self):
-        con = sql.connect('realWorldProject.db')
+        """ Check whether a user account exists and whether the input password is correct """
+        con = sql.connect('realWorldProject.db') # connect to the database
         cur = con.cursor()
-        theEmail = self.ids.loginemail.text
-        thePassword = self.ids.loginpassword.text
+        theEmail = self.ids.loginemail.text # variable theEmail equals the contents of the loginemail textfield
+        thePassword = self.ids.loginpassword.text # variable thePassword equals the contents of the loginpassword textfield
 
         for row in cur.execute('''SELECT email FROM userDetails WHERE email = ?;''', (theEmail,)):
+            # iterate through the query which selects the email field from the userDetails table where the email is equal to theEmail parameter
             email = row
             break
         else:
-            self.ids.warningmsg.text = "Your username or password are incorrect"
-            return None
+            self.ids.warningmsg.text = "Your username or password are incorrect" # if no matches throw the user an error message
+            return None # return none and break out of function
 
-        cur.execute('''SELECT password FROM userDetails WHERE email = ?; ''', (theEmail,))
+        cur.execute('''SELECT password FROM userDetails WHERE email = ?; ''', (theEmail,)) # get the password tied to the record where the email = theEmail parameter
         dbHash = cur.fetchone()[0]
-        doPasswordsMatch = self.check_password(dbHash, thePassword)
+        doPasswordsMatch = self.check_password(dbHash, thePassword) # check whether the textfield input password matches the hashed password for that user account
 
         if doPasswordsMatch == True:
-            root_widget.current = 'shopping'
+            root_widget.current = 'shopping' # if the passwords match load the shopping screen 
             pass
         else:
-            self.ids.warningmsg.text = "Your username or password are incorrect"
+            self.ids.warningmsg.text = "Your username or password are incorrect" # else inform the user there was an error
 
 
-    def check_password(self, hashed_password, user_password):
+    def check_password(self, hashed_password, user_password): #funcation to check if password being entered is the same or not
         password, salt = hashed_password.split(':')
         return password == hashlib.sha256(salt.encode() + user_password.encode()).hexdigest()
         
 class RegisterScreen(Screen):
 
     def getNewId(self):
+        """ Count all the records in the database and increment by 1 to generate a new user ID """
         con = sql.connect('realWorldProject.db')
         cur = con.cursor()
-        cur.execute('''SELECT Count(*) FROM userDetails''')
+        cur.execute('''SELECT Count(*) FROM userDetails''') # count all records from the userDetails table 
         theCount = int(cur.fetchone() [0])
-        return int(theCount + 1)
+        return int(theCount + 1) # return the answer incremented by 1 to the callee
 
     def RegisterUser(self):
+        """ Register a new user and input their details into the database """
         con = sql.connect('realWorldProject.db')
         cur = con.cursor()
-        password = self.ids.password.text
-        hashedPassword = self.hash_password(password)
-        userDetails = [self.getNewId(), hashedPassword, self.ids.email.text, int(self.ids.phone.text)]
-        cur.execute('''INSERT INTO userDetails (userID, password, email, phone_number) VALUES (?, ?, ?, ?);''', userDetails)
+        password = self.ids.password.text # take password from the password textfield 
+        hashedPassword = self.hash_password(password) # hash the password 
+        userDetails = [self.getNewId(), hashedPassword, self.ids.email.text, int(self.ids.phone.text)] # take all contents of textfields and the hashed password and put them in a list
+        cur.execute('''INSERT INTO userDetails (userID, password, email, phone_number) VALUES (?, ?, ?, ?);''', userDetails) # insert all the details into the database
         con.commit()
         con.close()
-        self.ids.success.text = "Successfully registered!"
-        self.clearInput()
+        self.ids.success.text = "Successfully registered!" #indicate to the user they were successfully registered
+        self.clearInput() # 
         
     def clearInput(self):
+        """ Clear all the textfields on the screen ready for a new registration """
         self.ids.password.text = ""
         self.ids.email.text = ""
         self.ids.phone.text = ""
         self.ids.confirm.text = ""
 
-    def hash_password(self, password):
+    def hash_password(self, password): #creating funcation to hash passwords
         # uuid is used to generate a random number
-        salt = uuid.uuid4().hex
+        salt = uuid.uuid4().hex #salt is a random sequence added to the password string before using the hash function, uuid4 make a random uuid 
         return hashlib.sha256(salt.encode() + password.encode()).hexdigest() + ':' + salt
 
 
 
 class IngredQty(BoxLayout):
+    """ A custom implementation of the BoxLayout which consists of 2 labels """
     pass
 
 class Ingredient(BoxLayout):
+    """ A custom implementation of the BoxLayout which constructs an ingredient widget with two labels and a checkbox """
     ingredient = StringProperty('')
     quantity = StringProperty('')
 
@@ -128,34 +139,36 @@ class Ingredient(BoxLayout):
         print("test")
 
 class ShoppingScreen(Screen):
-    recipes = []
-    totalCalories = 0
-    averageCalories = 0 
+    recipes = [] # stores all recipes added to the shopping list by the user 
+    totalCalories = 0 # holds the value for the total calories of all the recipes combined 
+    averageCalories = 0 # the average calories each day depending on what duration of time the user selects
     
     def addRecipe(self):
-        con = sql.connect('realWorldProject.db')
+        """ Adds a recipe to the scrollview pane """
+        con = sql.connect('realWorldProject.db') # connects to the DB
         cur = con.cursor()
-        for recipe in ShoppingScreen.recipes:
+        for recipe in ShoppingScreen.recipes: # iterates through all entries in the recipes list
             
-            cur.execute('''SELECT recipeName FROM recipes WHERE recipeID = ?;''', (recipe,))
+            cur.execute('''SELECT recipeName FROM recipes WHERE recipeID = ?;''', (recipe,)) # select the recipeName based on the recipe parameter
             recipeName = str(cur.fetchone()[0])
-            self.ids.grid.add_widget(RecipeLabel(recipeName=recipeName))
-            self.ids.grid.add_widget(IngredQty())
+            self.ids.grid.add_widget(RecipeLabel(recipeName=recipeName)) # create a recipe label based on what's returned via the query
+            self.ids.grid.add_widget(IngredQty()) # adds two labels underneath the recipe label 
 
-            cur.execute('''SELECT calories FROM recipes WHERE recipeID = ?''', (recipe,))
+            cur.execute('''SELECT calories FROM recipes WHERE recipeID = ?''', (recipe,)) # retrieves the calories of the selected recipe
             thecalories = int(cur.fetchone()[0])
-            ShoppingScreen.totalCalories += thecalories
+            ShoppingScreen.totalCalories += thecalories # totalCalories class attribute is incremented with the calories of the recipe selected
 
 
             
             ingredients = cur.execute('''SELECT * FROM ingredients WHERE recipeID = ?;''', (recipe,))
-            for row in ingredients:
+            for row in ingredients: # retrieves all ingredients for the selected recipe and populates the scrollview with them
                 self.ids.grid.add_widget(Ingredient(ingredient=row[1], quantity = row[2]))
-            ShoppingScreen.recipes.remove(recipe)
+            ShoppingScreen.recipes.remove(recipe) # removes the recipe from the recipes list as it has been added to the screen now 
 
-        self.ids.totalcalories.text = str(ShoppingScreen.totalCalories)
+        self.ids.totalcalories.text = str(ShoppingScreen.totalCalories) # updates the totalCalories text 
 
     def clearList(self):
+        """ Clears the scrollview of all the recipes """
         self.ids.grid.clear_widgets()
         ShoppingScreen.totalCalories = 0
         self.ids.totalcalories.text = str(ShoppingScreen.totalCalories)
@@ -163,12 +176,14 @@ class ShoppingScreen(Screen):
         self.ids.avgcalories.text = str(avg)
 
     def calculateAvg(self, divisor):
+        """ Calculates the average amount of calories per day based on the divisor passed when called via the dropdown menu """
         avg = ShoppingScreen.totalCalories // divisor
         self.ids.avgcalories.text = str(avg)
             
      
 
 class RecipeLabel(BoxLayout):
+    """ A custom implementation of the BoxLayout widget """
     recipeName = StringProperty('')      
         
 
@@ -184,10 +199,15 @@ class AddRecipe(Screen):
 class SimpleCheeseOmelette(Screen):
 
     def addToShopping(self, theId):
+        """ Adds a 1 to indicate a simple cheese omelette to the ShoppingScreen's recipes list """
         ShoppingScreen.recipes.append(1)
 
 class theScreenManager(ScreenManager):
+    """ Manages the different screens of the application """
     pass
+
+# The KV language formats screens/widgets/frames much like CSS formats HTML
+# The below text within the load_string function is all KV language for customizing widget details such as size, color and position
 
 root_widget = Builder.load_string('''
 #:import FadeTransition kivy.uix.screenmanager.FadeTransition
@@ -1402,26 +1422,6 @@ theScreenManager:
             background_color: 1, 1, 1, 1
             on_release: root.addToShopping(1)
 
-        
-
-
-
-        
-
-        
-
-        
-            
-
-            
-        
-
-                
-
-            
-        
-        
-
 <AddRecipe>:
     name: 'addrecipe'
     BoxLayout:
@@ -1505,18 +1505,6 @@ theScreenManager:
                     Rectangle:
                         pos: self.pos
                         size: self.size
-        
-
-        
-
-        
-
-        
-        
-
-
-            
-
 
 ''')
 
